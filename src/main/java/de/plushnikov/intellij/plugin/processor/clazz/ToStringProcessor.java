@@ -90,7 +90,7 @@ public class ToStringProcessor extends AbstractClassProcessor {
   }
 
   @NotNull
-  Collection<PsiMethod> createToStringMethod(@NotNull PsiClass psiClass, @NotNull PsiAnnotation psiAnnotation) {
+  public Collection<PsiMethod> createToStringMethod(@NotNull PsiClass psiClass, @NotNull PsiAnnotation psiAnnotation) {
     final Collection<PsiMethod> classMethods = PsiClassUtil.collectClassMethodsIntern(psiClass);
     if (PsiMethodUtil.hasMethodByName(classMethods, METHOD_NAME)) {
       return Collections.emptyList();
@@ -117,7 +117,7 @@ public class ToStringProcessor extends AbstractClassProcessor {
     return methodBuilder;
   }
 
-  private String getSimpleClassName(@NotNull PsiClass psiClass) {
+  public String getSimpleClassName(@NotNull PsiClass psiClass) {
     final StringBuilder psiClassName = new StringBuilder();
 
     PsiClass containingClass = psiClass;

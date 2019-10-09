@@ -1,4 +1,4 @@
-package de.plushnikov.intellij.plugin.processor.clazz;
+package io.mateu.intellij.plugin.processor.clazz;
 
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.openapi.util.text.StringUtil;
@@ -7,6 +7,7 @@ import com.intellij.psi.util.PsiTypesUtil;
 import de.plushnikov.intellij.plugin.lombokconfig.ConfigKey;
 import de.plushnikov.intellij.plugin.problem.ProblemBuilder;
 import de.plushnikov.intellij.plugin.processor.LombokPsiElementUsage;
+import de.plushnikov.intellij.plugin.processor.clazz.AbstractClassProcessor;
 import de.plushnikov.intellij.plugin.processor.handler.EqualsAndHashCodeToStringHandler;
 import de.plushnikov.intellij.plugin.processor.handler.EqualsAndHashCodeToStringHandler.MemberInfo;
 import de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder;
@@ -16,6 +17,7 @@ import de.plushnikov.intellij.plugin.util.PsiAnnotationUtil;
 import de.plushnikov.intellij.plugin.util.PsiClassUtil;
 import de.plushnikov.intellij.plugin.util.PsiMethodUtil;
 import lombok.EqualsAndHashCode;
+import lombok.JPAEqualsAndHashCode;
 import lombok.Value;
 import lombok.experimental.NonFinal;
 import org.jetbrains.annotations.NotNull;
@@ -24,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Inspect and validate @EqualsAndHashCode lombok annotation on a class
@@ -31,20 +34,24 @@ import java.util.List;
  *
  * @author Plushnikov Michail
  */
-public class EqualsAndHashCodeProcessor extends AbstractClassProcessor {
+public class JPAEqualsAndHashCodeProcessor extends AbstractClassProcessor {
 
   private static final String EQUALS_METHOD_NAME = "equals";
   private static final String HASH_CODE_METHOD_NAME = "hashCode";
   private static final String CAN_EQUAL_METHOD_NAME = "canEqual";
 
-  private static final String INCLUDE_ANNOTATION_METHOD = "replaces";
+  protected static final String INCLUDE_ANNOTATION_METHOD = "replaces";
   private static final String EQUALSANDHASHCODE_INCLUDE = EqualsAndHashCode.Include.class.getName().replace("$", ".");
   private static final String EQUALSANDHASHCODE_EXCLUDE = EqualsAndHashCode.Exclude.class.getName().replace("$", ".");
 
   private final EqualsAndHashCodeToStringHandler handler;
 
-  public EqualsAndHashCodeProcessor(@NotNull EqualsAndHashCodeToStringHandler equalsAndHashCodeToStringHandler) {
-    super(PsiMethod.class, EqualsAndHashCode.class);
+  public EqualsAndHashCodeToStringHandler getHandler() {
+    return handler;
+  }
+
+  public JPAEqualsAndHashCodeProcessor(@NotNull EqualsAndHashCodeToStringHandler equalsAndHashCodeToStringHandler) {
+    super(PsiMethod.class, JPAEqualsAndHashCode.class);
     handler = equalsAndHashCodeToStringHandler;
   }
 
@@ -77,7 +84,7 @@ public class EqualsAndHashCodeProcessor extends AbstractClassProcessor {
       PsiQuickFixFactory.createChangeAnnotationParameterFix(psiAnnotation, "callSuper", "true"));
   }
 
-  public void validateCallSuperParamExtern(@NotNull PsiAnnotation psiAnnotation, @NotNull PsiClass psiClass, @NotNull ProblemBuilder builder) {
+  void validateCallSuperParamExtern(@NotNull PsiAnnotation psiAnnotation, @NotNull PsiClass psiClass, @NotNull ProblemBuilder builder) {
     validateCallSuperParam(psiAnnotation, psiClass, builder,
       PsiQuickFixFactory.createAddAnnotationQuickFix(psiClass, "lombok.EqualsAndHashCode", "callSuper = true"));
   }
@@ -129,12 +136,12 @@ public class EqualsAndHashCodeProcessor extends AbstractClassProcessor {
     target.addAll(createEqualAndHashCode(psiClass, psiAnnotation));
   }
 
-  public Collection<PsiMethod> createEqualAndHashCode(@NotNull PsiClass psiClass, @NotNull PsiAnnotation psiAnnotation) {
+  protected Collection<PsiMethod> createEqualAndHashCode(@NotNull PsiClass psiClass, @NotNull PsiAnnotation psiAnnotation) {
     if (hasOneOfMethodsDefined(psiClass)) {
       return Collections.emptyList();
     }
 
-    final Collection<MemberInfo> memberInfos = handler.filterFields(psiClass, psiAnnotation, true, INCLUDE_ANNOTATION_METHOD);
+    final Collection<MemberInfo> memberInfos = handler.filterFields(psiClass, psiAnnotation, true, INCLUDE_ANNOTATION_METHOD).stream().filter(mi -> mi.getField().getAnnotation("javax.persistence.Id") != null).collect(Collectors.toList());
 
     final boolean shouldGenerateCanEqual = shouldGenerateCanEqual(psiClass);
 
@@ -230,14 +237,10 @@ public class EqualsAndHashCodeProcessor extends AbstractClassProcessor {
 
       final PsiType memberType = memberInfo.getType();
       if (memberType instanceof PsiPrimitiveType) {
+        //todo: comprobar si es 0 o null
         if (PsiType.FLOAT.equals(memberType)) {
-          builder.append("if (this.").append(memberAccessor).append(" == 0) return false;\n");
           builder.append("if (java.lang.Float.compare(this.").append(memberAccessor).append(", other.").append(memberAccessor).append(") != 0) return false;\n");
         } else if (PsiType.DOUBLE.equals(memberType)) {
-          builder.append("if (this.").append(memberAccessor).append(" == 0) return false;\n");
-          builder.append("if (java.lang.Double.compare(this.").append(memberAccessor).append(", other.").append(memberAccessor).append(") != 0) return false;\n");
-        } else if (PsiType.INT.equals(memberType)) {
-          builder.append("if (this.").append(memberAccessor).append(" == 0) return false;\n");
           builder.append("if (java.lang.Double.compare(this.").append(memberAccessor).append(", other.").append(memberAccessor).append(") != 0) return false;\n");
         } else {
           builder.append("if (this.").append(memberAccessor).append(" != other.").append(memberAccessor).append(") return false;\n");
@@ -251,7 +254,6 @@ public class EqualsAndHashCodeProcessor extends AbstractClassProcessor {
         }
       } else {
         final String memberName = memberInfo.getName();
-        builder.append("if (this.").append(memberAccessor).append(" == null) return false;\n");
         builder.append("final java.lang.Object this$").append(memberName).append(" = this.").append(memberAccessor).append(";\n");
         builder.append("final java.lang.Object other$").append(memberName).append(" = other.").append(memberAccessor).append(";\n");
         builder.append("if (this$").append(memberName).append(" == null ? other$").append(memberName).append(" != null : !this$")
@@ -262,60 +264,9 @@ public class EqualsAndHashCodeProcessor extends AbstractClassProcessor {
     return builder.toString();
   }
 
-  private static final int PRIME_FOR_HASHCODE = 59;
-  private static final int PRIME_FOR_TRUE = 79;
-  private static final int PRIME_FOR_FALSE = 97;
-  private static final int PRIME_FOR_NULL = 43;
-
   private String createHashcodeBlockString(@NotNull PsiClass psiClass, @NotNull PsiAnnotation psiAnnotation, Collection<MemberInfo> memberInfos) {
-    final boolean callSuper = readCallSuperAnnotationOrConfigProperty(psiAnnotation, psiClass, ConfigKey.EQUALSANDHASHCODE_CALL_SUPER);
-    final boolean doNotUseGetters = readAnnotationOrConfigProperty(psiAnnotation, psiClass, "doNotUseGetters", ConfigKey.EQUALSANDHASHCODE_DO_NOT_USE_GETTERS);
-
     final StringBuilder builder = new StringBuilder();
-
-    if (!memberInfos.isEmpty()) {
-      builder.append("final int PRIME = ").append(PRIME_FOR_HASHCODE).append(";\n");
-    }
-    builder.append("int result = ");
-
-    if (callSuper) {
-      builder.append("super.hashCode();\n");
-    } else {
-      builder.append("1;\n");
-    }
-
-    for (MemberInfo memberInfo : memberInfos) {
-      final String memberAccessor = handler.getMemberAccessorName(memberInfo, doNotUseGetters, psiClass);
-      final String memberName = memberInfo.getMethod() == null ? memberInfo.getName() : "$" + memberInfo.getName();
-
-      final PsiType classFieldType = memberInfo.getType();
-      if (classFieldType instanceof PsiPrimitiveType) {
-        if (PsiType.BOOLEAN.equals(classFieldType)) {
-          builder.append("result = result * PRIME + (this.").append(memberAccessor).append(" ? ").append(PRIME_FOR_TRUE).append(" : ").append(PRIME_FOR_FALSE).append(");\n");
-        } else if (PsiType.LONG.equals(classFieldType)) {
-          builder.append("final long $").append(memberName).append(" = this.").append(memberAccessor).append(";\n");
-          builder.append("result = result * PRIME + (int)($").append(memberName).append(" >>> 32 ^ $").append(memberName).append(");\n");
-        } else if (PsiType.FLOAT.equals(classFieldType)) {
-          builder.append("result = result * PRIME + java.lang.Float.floatToIntBits(this.").append(memberAccessor).append(");\n");
-        } else if (PsiType.DOUBLE.equals(classFieldType)) {
-          builder.append("final long $").append(memberName).append(" = java.lang.Double.doubleToLongBits(this.").append(memberAccessor).append(");\n");
-          builder.append("result = result * PRIME + (int)($").append(memberName).append(" >>> 32 ^ $").append(memberName).append(");\n");
-        } else {
-          builder.append("result = result * PRIME + this.").append(memberAccessor).append(";\n");
-        }
-      } else if (classFieldType instanceof PsiArrayType) {
-        final PsiType componentType = ((PsiArrayType) classFieldType).getComponentType();
-        if (componentType instanceof PsiPrimitiveType) {
-          builder.append("result = result * PRIME + java.util.Arrays.hashCode(this.").append(memberAccessor).append(");\n");
-        } else {
-          builder.append("result = result * PRIME + java.util.Arrays.deepHashCode(this.").append(memberAccessor).append(");\n");
-        }
-      } else {
-        builder.append("final java.lang.Object $").append(memberName).append(" = this.").append(memberAccessor).append(";\n");
-        builder.append("result = result * PRIME + ($").append(memberName).append(" == null ? " + PRIME_FOR_NULL + " : $").append(memberName).append(".hashCode());\n");
-      }
-    }
-    builder.append("return result;\n");
+    builder.append("return getClass().hashCode();\n");
     return builder.toString();
   }
 

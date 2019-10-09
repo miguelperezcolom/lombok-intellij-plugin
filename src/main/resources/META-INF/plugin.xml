@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<idea-plugin url="https://github.com/mplushnikov/lombok-intellij-plugin">
-  <id>Lombook Plugin</id>
-  <name>Lombok</name>
-  <vendor url="https://github.com/mplushnikov/lombok-intellij-plugin" email="lombokplugin@plushnikov.de">Michail
-    Plushnikov
-  </vendor>
+<idea-plugin url="https://github.com/miguelperezcolom/lombok-intellij-plugin">
+  <id>io.mateu.lombok-plugin</id>
+  <name>Mateu  MDD plugin</name>
+  <vendor url="https://github.com/miguelperezcolom/lombok-intellij-plugin" email="miguelperezcolom@gmail.com">Miguel Pérez</vendor>
   <version>XXX</version>
 
   <idea-version since-build="181.00"/>
@@ -61,6 +59,9 @@
     <applicationService serviceImplementation="de.plushnikov.intellij.plugin.processor.clazz.SetterProcessor"/>
     <applicationService serviceImplementation="de.plushnikov.intellij.plugin.processor.clazz.ToStringProcessor"/>
     <applicationService serviceImplementation="de.plushnikov.intellij.plugin.processor.clazz.WitherProcessor"/>
+
+    <applicationService serviceImplementation="io.mateu.intellij.plugin.processor.clazz.JPAEqualsAndHashCodeProcessor"/>
+    <applicationService serviceImplementation="io.mateu.intellij.plugin.processor.clazz.MateuMDDEntityProcessor"/>
 
     <applicationService
       serviceImplementation="de.plushnikov.intellij.plugin.processor.clazz.builder.BuilderPreDefinedInnerClassFieldProcessor"/>

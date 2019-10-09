@@ -8,10 +8,11 @@ repositories {
   jcenter()
   mavenCentral()
   maven { url "https://www.jitpack.io" }
+  maven { url "http://nexus.mateu.io/repository/mateu-central" }
 }
 // Fix Bug https://github.com/jitpack/jitpack.io/issues/3973
 project.repositories.removeAll {
-  it instanceof MavenArtifactRepository && it.url.toString() == 'https://jitpack.io'
+  //it instanceof MavenArtifactRepository && it.url.toString() == 'https://jitpack.io'
 }
 
 
@@ -91,7 +92,13 @@ configurations {
 }
 
 dependencies {
-  lombok group: 'org.projectlombok', name: 'lombok', version: '1.18.10', classifier: 'sources', ext: 'jar'
+  //lombok group: 'org.projectlombok', name: 'lombok', version: '1.18.10'
+  //lombok group: 'org.projectlombok', name: 'lombok', version: '1.18.10', classifier: 'sources', ext: 'jar'
+  //compile group: 'io.mateu', name: 'lombok', version: '1.18.11.43'
+  lombok group: 'io.mateu', name: 'lombok', version: '1.18.11.44', classifier: 'sources', ext: 'jar'
+  //compile group: 'io.mateu', name: 'lombok', version: '1.18.11.42', classifier: 'sources', ext: 'jar'
+  //compile group: 'org.projectlombok', name: 'lombok', version: '1.18.11'
+  compile group: 'javax.persistence', name: 'javax.persistence-api', version: '2.2'
 
   testCompile group: 'junit', name: 'junit', version: '4.12'
   testCompile group: 'org.mockito', name: 'mockito-core', version: '3.1.0'
@@ -122,6 +129,8 @@ copy {
     include 'lombok/var.java'
     include 'lombok/Singular.java'
     include 'lombok/core/handlers/Singulars.java'
+    include 'lombok/JPAEqualsAndHashCode.java'
+    include 'lombok/MateuMDDEntity.java'
   }
   into("generated/src")
 }

@@ -37,7 +37,7 @@ public abstract class BaseLombokHandler implements CodeInsightActionHandler {
     }
   }
 
-  protected abstract void processClass(@NotNull PsiClass psiClass);
+  public abstract void processClass(@NotNull PsiClass psiClass);
 
   protected void processIntern(@NotNull Map<PsiField, PsiMethod> fieldMethodMap, @NotNull PsiClass psiClass, @NotNull Class<? extends Annotation> annotationClass) {
     if (fieldMethodMap.isEmpty()) {

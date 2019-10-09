@@ -1,18 +1,17 @@
-package de.plushnikov.intellij.plugin.action.lombok;
+package io.mateu.intellij.plugin.action.lombok;
 
 import com.intellij.psi.PsiClass;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import de.plushnikov.intellij.plugin.action.lombok.*;
+import lombok.*;
 import org.jetbrains.annotations.NotNull;
 
-public class LombokDataHandler extends BaseLombokHandler {
+import javax.persistence.Entity;
+
+public class LombokMateuMDDEntityHandler extends BaseLombokHandler {
 
   private final BaseLombokHandler[] handlers;
 
-  public LombokDataHandler() {
+  public LombokMateuMDDEntityHandler() {
     handlers = new BaseLombokHandler[]{
       new LombokGetterHandler(), new LombokSetterHandler(),
       new LombokToStringHandler(), new LombokEqualsAndHashcodeHandler()};
@@ -25,10 +24,13 @@ public class LombokDataHandler extends BaseLombokHandler {
 
     removeDefaultAnnotation(psiClass, Getter.class);
     removeDefaultAnnotation(psiClass, Setter.class);
-    removeDefaultAnnotation(psiClass, ToString.class);
+    //removeDefaultAnnotation(psiClass, ToString.class);
     removeDefaultAnnotation(psiClass, EqualsAndHashCode.class);
+    removeDefaultAnnotation(psiClass, JPAEqualsAndHashCode.class);
 
-    addAnnotation(psiClass, Data.class);
+    addAnnotation(psiClass, MateuMDDEntity.class);
+    addAnnotation(psiClass, Entity.class);
+
   }
 
 }

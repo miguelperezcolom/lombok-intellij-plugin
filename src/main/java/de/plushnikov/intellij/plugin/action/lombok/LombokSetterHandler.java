@@ -14,7 +14,7 @@ import java.util.Map;
 public class LombokSetterHandler extends BaseLombokHandler {
 
   @Override
-  protected void processClass(@NotNull PsiClass psiClass) {
+  public void processClass(@NotNull PsiClass psiClass) {
     final Map<PsiField, PsiMethod> fieldMethodMap = new HashMap<>();
     for (PsiField psiField : psiClass.getFields()) {
       PsiMethod propertySetter = PropertyUtil.findPropertySetter(psiClass, psiField.getName(), psiField.hasModifierProperty(PsiModifier.STATIC), false);

@@ -1,12 +1,14 @@
-package de.plushnikov.intellij.plugin.action.lombok;
+package io.mateu.intellij.plugin.action.lombok;
 
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiType;
+import de.plushnikov.intellij.plugin.action.lombok.BaseLombokHandler;
 import lombok.EqualsAndHashCode;
+import lombok.JPAEqualsAndHashCode;
 import org.jetbrains.annotations.NotNull;
 
-public class LombokEqualsAndHashcodeHandler extends BaseLombokHandler {
+public class LombokJPAEqualsAndHashcodeHandler extends BaseLombokHandler {
 
   public void processClass(@NotNull PsiClass psiClass) {
     final PsiMethod equalsMethod = findPublicNonStaticMethod(psiClass, "equals", PsiType.BOOLEAN,
@@ -20,6 +22,6 @@ public class LombokEqualsAndHashcodeHandler extends BaseLombokHandler {
       hashCodeMethod.delete();
     }
 
-    addAnnotation(psiClass, EqualsAndHashCode.class);
+    addAnnotation(psiClass, JPAEqualsAndHashCode.class);
   }
 }

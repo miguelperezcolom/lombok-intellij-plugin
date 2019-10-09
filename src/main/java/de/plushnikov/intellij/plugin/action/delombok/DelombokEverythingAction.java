@@ -1,14 +1,7 @@
 package de.plushnikov.intellij.plugin.action.delombok;
 
 import com.intellij.openapi.components.ServiceManager;
-import de.plushnikov.intellij.plugin.processor.clazz.DataProcessor;
-import de.plushnikov.intellij.plugin.processor.clazz.EqualsAndHashCodeProcessor;
-import de.plushnikov.intellij.plugin.processor.clazz.GetterProcessor;
-import de.plushnikov.intellij.plugin.processor.clazz.SetterProcessor;
-import de.plushnikov.intellij.plugin.processor.clazz.ToStringProcessor;
-import de.plushnikov.intellij.plugin.processor.clazz.UtilityClassProcessor;
-import de.plushnikov.intellij.plugin.processor.clazz.ValueProcessor;
-import de.plushnikov.intellij.plugin.processor.clazz.WitherProcessor;
+import de.plushnikov.intellij.plugin.processor.clazz.*;
 import de.plushnikov.intellij.plugin.processor.clazz.builder.BuilderClassProcessor;
 import de.plushnikov.intellij.plugin.processor.clazz.builder.BuilderPreDefinedInnerClassFieldProcessor;
 import de.plushnikov.intellij.plugin.processor.clazz.builder.BuilderPreDefinedInnerClassMethodProcessor;
@@ -39,6 +32,8 @@ import de.plushnikov.intellij.plugin.processor.field.WitherFieldProcessor;
 import de.plushnikov.intellij.plugin.processor.method.BuilderClassMethodProcessor;
 import de.plushnikov.intellij.plugin.processor.method.BuilderMethodProcessor;
 import de.plushnikov.intellij.plugin.processor.method.DelegateMethodProcessor;
+import io.mateu.intellij.plugin.processor.clazz.JPAEqualsAndHashCodeProcessor;
+import io.mateu.intellij.plugin.processor.clazz.MateuMDDEntityProcessor;
 
 public class DelombokEverythingAction extends AbstractDelombokAction {
 
@@ -83,7 +78,16 @@ public class DelombokEverythingAction extends AbstractDelombokAction {
       ServiceManager.getService(SuperBuilderPreDefinedInnerClassFieldProcessor.class),
       ServiceManager.getService(SuperBuilderPreDefinedInnerClassMethodProcessor.class),
       ServiceManager.getService(SuperBuilderClassProcessor.class),
-      ServiceManager.getService(SuperBuilderProcessor.class));
+      ServiceManager.getService(SuperBuilderProcessor.class),
+
+
+      ServiceManager.getService(JPAEqualsAndHashCodeProcessor.class),
+      ServiceManager.getService(MateuMDDEntityProcessor.class)
+
+    );
+
+
+
   }
 
 }

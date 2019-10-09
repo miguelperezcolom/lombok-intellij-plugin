@@ -29,7 +29,7 @@ public class DelombokHandler {
   private final boolean processInnerClasses;
   private final Collection<AbstractProcessor> lombokProcessors;
 
-  protected DelombokHandler(AbstractProcessor... lombokProcessors) {
+  public DelombokHandler(AbstractProcessor... lombokProcessors) {
     this(false, lombokProcessors);
   }
 

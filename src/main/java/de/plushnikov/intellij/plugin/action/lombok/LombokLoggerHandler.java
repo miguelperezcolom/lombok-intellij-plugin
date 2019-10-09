@@ -23,7 +23,7 @@ import java.util.Collection;
 
 public class LombokLoggerHandler extends BaseLombokHandler {
 
-  protected void processClass(@NotNull PsiClass psiClass) {
+  public void processClass(@NotNull PsiClass psiClass) {
     final Collection<AbstractLogProcessor> logProcessors = Arrays.asList(
       ServiceManager.getService(CommonsLogProcessor.class), ServiceManager.getService(JBossLogProcessor.class),
       ServiceManager.getService(Log4jProcessor.class), ServiceManager.getService(Log4j2Processor.class), ServiceManager.getService(LogProcessor.class),

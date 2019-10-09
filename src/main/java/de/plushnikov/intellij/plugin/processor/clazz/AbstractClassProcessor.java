@@ -128,7 +128,7 @@ public abstract class AbstractClassProcessor extends AbstractProcessor implement
 
   protected abstract void generatePsiElements(@NotNull PsiClass psiClass, @NotNull PsiAnnotation psiAnnotation, @NotNull List<? super PsiElement> target);
 
-  void validateOfParam(PsiClass psiClass, ProblemBuilder builder, PsiAnnotation psiAnnotation, Collection<String> ofProperty) {
+  protected void validateOfParam(PsiClass psiClass, ProblemBuilder builder, PsiAnnotation psiAnnotation, Collection<String> ofProperty) {
     for (String fieldName : ofProperty) {
       if (!StringUtil.isEmptyOrSpaces(fieldName)) {
         PsiField fieldByName = psiClass.findFieldByName(fieldName, false);
@@ -141,7 +141,7 @@ public abstract class AbstractClassProcessor extends AbstractProcessor implement
     }
   }
 
-  void validateExcludeParam(PsiClass psiClass, ProblemBuilder builder, PsiAnnotation psiAnnotation, Collection<String> excludeProperty) {
+  protected void validateExcludeParam(PsiClass psiClass, ProblemBuilder builder, PsiAnnotation psiAnnotation, Collection<String> excludeProperty) {
     for (String fieldName : excludeProperty) {
       if (!StringUtil.isEmptyOrSpaces(fieldName)) {
         PsiField fieldByName = psiClass.findFieldByName(fieldName, false);
@@ -169,7 +169,7 @@ public abstract class AbstractClassProcessor extends AbstractProcessor implement
     return result;
   }
 
-  boolean shouldGenerateNoArgsConstructor(@NotNull PsiClass psiClass, @NotNull AbstractConstructorClassProcessor argsConstructorProcessor) {
+  protected boolean shouldGenerateNoArgsConstructor(@NotNull PsiClass psiClass, @NotNull AbstractConstructorClassProcessor argsConstructorProcessor) {
     boolean result = configDiscovery.getBooleanLombokConfigProperty(ConfigKey.NO_ARGS_CONSTRUCTOR_EXTRA_PRIVATE, psiClass);
     if (result) {
       result = !PsiClassUtil.hasSuperClass(psiClass);
@@ -186,7 +186,7 @@ public abstract class AbstractClassProcessor extends AbstractProcessor implement
     return result;
   }
 
-  boolean readCallSuperAnnotationOrConfigProperty(@NotNull PsiAnnotation psiAnnotation, @NotNull PsiClass psiClass, @NotNull ConfigKey configKey) {
+  protected boolean readCallSuperAnnotationOrConfigProperty(@NotNull PsiAnnotation psiAnnotation, @NotNull PsiClass psiClass, @NotNull ConfigKey configKey) {
     final boolean result;
     final Boolean declaredAnnotationValue = PsiAnnotationUtil.getDeclaredBooleanAnnotationValue(psiAnnotation, "callSuper");
     if (null == declaredAnnotationValue) {

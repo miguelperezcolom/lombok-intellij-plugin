@@ -61,6 +61,7 @@
     <applicationService serviceImplementation="de.plushnikov.intellij.plugin.processor.clazz.WitherProcessor"/>
 
     <applicationService serviceImplementation="io.mateu.intellij.plugin.processor.clazz.JPAEqualsAndHashCodeProcessor"/>
+    <applicationService serviceImplementation="io.mateu.intellij.plugin.processor.clazz.MateuMDDEntityProcessor1"/>
     <applicationService serviceImplementation="io.mateu.intellij.plugin.processor.clazz.MateuMDDEntityProcessor"/>
 
     <applicationService

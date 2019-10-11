@@ -232,10 +232,12 @@ public class JPAEqualsAndHashCodeProcessor extends AbstractClassProcessor {
       builder.append("if (!super.equals(o)) return false;\n");
     }
 
-    for (MemberInfo memberInfo : memberInfos) {
-      final String memberAccessor = handler.getMemberAccessorName(memberInfo, doNotUseGetters, psiClass);
+    List<PsiField> idFields = MateuMDDEntityProcessor.getIdFields(psiClass);
 
-      final PsiType memberType = memberInfo.getType();
+    for (PsiField idField : idFields) {
+      final String memberAccessor = MateuMDDEntityProcessor.getFieldAccessorName(idField, doNotUseGetters, psiClass);
+
+      final PsiType memberType = idField.getType();
       if (memberType instanceof PsiPrimitiveType) {
         //todo: comprobar si es 0 o null
         if (PsiType.FLOAT.equals(memberType)) {
@@ -253,7 +255,7 @@ public class JPAEqualsAndHashCodeProcessor extends AbstractClassProcessor {
           builder.append("if (!java.util.Arrays.deepEquals(this.").append(memberAccessor).append(", other.").append(memberAccessor).append(")) return false;\n");
         }
       } else {
-        final String memberName = memberInfo.getName();
+        final String memberName = idField.getName();
         builder.append("final java.lang.Object this$").append(memberName).append(" = this.").append(memberAccessor).append(";\n");
         builder.append("final java.lang.Object other$").append(memberName).append(" = other.").append(memberAccessor).append(";\n");
         builder.append("if (this$").append(memberName).append(" == null ? other$").append(memberName).append(" != null : !this$")
@@ -266,7 +268,7 @@ public class JPAEqualsAndHashCodeProcessor extends AbstractClassProcessor {
 
   private String createHashcodeBlockString(@NotNull PsiClass psiClass, @NotNull PsiAnnotation psiAnnotation, Collection<MemberInfo> memberInfos) {
     final StringBuilder builder = new StringBuilder();
-    builder.append("return getClass().hashCode();\n");
+    builder.append("return this.getClass().hashCode();\n");
     return builder.toString();
   }
 

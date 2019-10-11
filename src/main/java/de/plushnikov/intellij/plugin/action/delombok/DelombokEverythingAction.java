@@ -34,6 +34,7 @@ import de.plushnikov.intellij.plugin.processor.method.BuilderMethodProcessor;
 import de.plushnikov.intellij.plugin.processor.method.DelegateMethodProcessor;
 import io.mateu.intellij.plugin.processor.clazz.JPAEqualsAndHashCodeProcessor;
 import io.mateu.intellij.plugin.processor.clazz.MateuMDDEntityProcessor;
+import io.mateu.intellij.plugin.processor.clazz.MateuMDDEntityProcessor1;
 
 public class DelombokEverythingAction extends AbstractDelombokAction {
 
@@ -82,6 +83,7 @@ public class DelombokEverythingAction extends AbstractDelombokAction {
 
 
       ServiceManager.getService(JPAEqualsAndHashCodeProcessor.class),
+      ServiceManager.getService(MateuMDDEntityProcessor1.class),
       ServiceManager.getService(MateuMDDEntityProcessor.class)
 
     );

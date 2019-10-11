@@ -1,7 +1,12 @@
 package io.mateu.intellij.plugin.processor.clazz;
 
+import com.intellij.codeInsight.completion.JavaCompletionUtil;
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.util.PsiTreeUtil;
 import de.plushnikov.intellij.plugin.problem.ProblemBuilder;
 import de.plushnikov.intellij.plugin.problem.ProblemEmptyBuilder;
 import de.plushnikov.intellij.plugin.processor.LombokPsiElementUsage;
@@ -9,17 +14,19 @@ import de.plushnikov.intellij.plugin.processor.clazz.*;
 import de.plushnikov.intellij.plugin.processor.clazz.constructor.NoArgsConstructorProcessor;
 import de.plushnikov.intellij.plugin.processor.clazz.constructor.RequiredArgsConstructorProcessor;
 import de.plushnikov.intellij.plugin.processor.handler.EqualsAndHashCodeToStringHandler;
+import de.plushnikov.intellij.plugin.provider.LombokAugmentProvider;
+import de.plushnikov.intellij.plugin.psi.LombokEnumConstantBuilder;
 import de.plushnikov.intellij.plugin.psi.LombokLightFieldBuilder;
+import de.plushnikov.intellij.plugin.psi.LombokLightIdentifier;
 import de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder;
-import de.plushnikov.intellij.plugin.util.PsiAnnotationSearchUtil;
-import de.plushnikov.intellij.plugin.util.PsiAnnotationUtil;
-import de.plushnikov.intellij.plugin.util.PsiClassUtil;
-import de.plushnikov.intellij.plugin.util.PsiMethodUtil;
+import de.plushnikov.intellij.plugin.thirdparty.LombokUtils;
+import de.plushnikov.intellij.plugin.util.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,6 +35,9 @@ import java.util.stream.Collectors;
  * @author Plushnikov Michail
  */
 public class MateuMDDEntityProcessor extends AbstractClassProcessor {
+
+  private static final Logger log = Logger.getInstance(MateuMDDEntityProcessor.class.getName());
+
 
   private final GetterProcessor getterProcessor;
   private final SetterProcessor setterProcessor;
@@ -81,27 +91,34 @@ public class MateuMDDEntityProcessor extends AbstractClassProcessor {
 
   protected void generatePsiElements(@NotNull PsiClass psiClass, @NotNull PsiAnnotation psiAnnotation, @NotNull List<? super PsiElement> target) {
 
-    createVersionField(psiClass);
+  log.info("procesando " + psiClass.getName());
+
 
     if (PsiAnnotationSearchUtil.isNotAnnotatedWith(psiClass, Getter.class)) {
       target.addAll(getterProcessor.createFieldGetters(psiClass, PsiModifier.PUBLIC));
     }
+
     if (PsiAnnotationSearchUtil.isNotAnnotatedWith(psiClass, Setter.class)) {
       target.addAll(setterProcessor.createFieldSetters(psiClass, PsiModifier.PUBLIC));
     }
-    /*
+
+
+    if (PsiAnnotationSearchUtil.isNotAnnotatedWith(psiClass, JPAEqualsAndHashCode.class)) {
+      target.addAll(jpaEqualsAndHashCodeProcessor.createEqualAndHashCode(psiClass, psiAnnotation));
+    }
+
+/*
     if (PsiAnnotationSearchUtil.isNotAnnotatedWith(psiClass, EqualsAndHashCode.class)) {
       target.addAll(equalsAndHashCodeProcessor.createEqualAndHashCode(psiClass, psiAnnotation));
     }
-     */
+
+ */
     //if (PsiAnnotationSearchUtil.isNotAnnotatedWith(psiClass, ToString.class)) {
     if (!isMethodDefined(psiClass, "toString")) {
       target.add(createToStringMethod(psiClass, psiAnnotation));
     }
     //}
-    if (PsiAnnotationSearchUtil.isNotAnnotatedWith(psiClass, JPAEqualsAndHashCode.class)) {
-      target.addAll(equalsAndHashCodeProcessor.createEqualAndHashCode(psiClass, psiAnnotation));
-    }
+
 
     final boolean hasConstructorWithoutParamaters;
     final String staticName = PsiAnnotationUtil.getStringAnnotationValue(psiAnnotation, "staticConstructor");
@@ -116,26 +133,70 @@ public class MateuMDDEntityProcessor extends AbstractClassProcessor {
     if (!hasConstructorWithoutParamaters && shouldGenerateNoArgsConstructor(psiClass, requiredArgsConstructorProcessor)) {
       target.addAll(noArgsConstructorProcessor.createNoArgsConstructor(psiClass, PsiModifier.PRIVATE, psiAnnotation, true));
     }
+
+  }
+
+  public static PsiField getFieldByName(PsiClass psiClass, String fieldName) {
+    List<PsiField> l = new ArrayList<>();
+    for (PsiField field : psiClass.getAllFields()) {
+      if (fieldName.equalsIgnoreCase(field.getName())) return field;
+    }
+    return null;
+  }
+
+  public static List<PsiField> getIdFields(PsiClass psiClass) {
+    List<PsiField> l = new ArrayList<>();
+    for (PsiField field : psiClass.getAllFields()) {
+      if (field.getAnnotation("javax.persistence.Id") != null || field.getAnnotation("Id") != null) l.add(field);
+    }
+    return l;
+  }
+
+  public static String getFieldAccessorName(@NotNull PsiField field, boolean doNotUseGetters, @NotNull PsiClass psiClass) {
+    final String memberAccessor;
+    memberAccessor = buildAttributeNameString(doNotUseGetters, field, psiClass);
+    return memberAccessor;
+  }
+
+  public static String buildAttributeNameString(boolean doNotUseGetters, @NotNull PsiField classField, @NotNull PsiClass psiClass) {
+    final String fieldName = classField.getName();
+    if (doNotUseGetters) {
+      return fieldName;
+    } else {
+      final String getterName = LombokUtils.getGetterName(classField);
+
+      final boolean hasGetter;
+      @SuppressWarnings("unchecked") final boolean annotatedWith = PsiAnnotationSearchUtil.isAnnotatedWith(psiClass, Data.class, Value.class, Getter.class);
+      if (annotatedWith) {
+        final PsiAnnotation getterLombokAnnotation = PsiAnnotationSearchUtil.findAnnotation(psiClass, Getter.class);
+        hasGetter = null == getterLombokAnnotation || null != LombokProcessorUtil.getMethodModifier(getterLombokAnnotation);
+      } else {
+        hasGetter = PsiMethodUtil.hasMethodByName(PsiClassUtil.collectClassMethodsIntern(psiClass), getterName);
+      }
+
+      return hasGetter ? getterName + "()" : fieldName;
+    }
   }
 
   private PsiMethod createToStringMethod(PsiClass psiClass, PsiAnnotation psiAnnotation) {
     final PsiManager psiManager = psiClass.getManager();
 
     String blockText = "return this.getClass().getSimpleName();";
-    if (isMethodPresent(psiClass, "getName")) {
+    PsiField nameField = getFieldByName(psiClass, "name");
+    if (nameField != null) {
       blockText = "return this.getName();";
     } else {
-      EqualsAndHashCodeToStringHandler handler = jpaEqualsAndHashCodeProcessor.getHandler();
-      final Collection<EqualsAndHashCodeToStringHandler.MemberInfo> memberInfos = handler.filterFields(psiClass, psiAnnotation, true, jpaEqualsAndHashCodeProcessor.INCLUDE_ANNOTATION_METHOD).stream().filter(mi -> mi.getField().getAnnotation("javax.persistence.Id") != null).collect(Collectors.toList());
 
-      if (memberInfos.size() > 0) {
+      List<PsiField> idFields = getIdFields(psiClass);
+
+      if (idFields.size() > 0) {
 
         blockText = "return \"\"";
 
         int pos = 0;
-        for (EqualsAndHashCodeToStringHandler.MemberInfo memberInfo : memberInfos) {
-          final String memberAccessor = handler.getMemberAccessorName(memberInfo, false, psiClass);
-          if (pos++ == 0) blockText += " + \" \" ";
+        for (PsiField idField : idFields) {
+          final String memberAccessor = getFieldAccessorName(idField, false, psiClass);
+          if (pos++ > 0) blockText += " + \" \" ";
           blockText += " + " + memberAccessor;
         }
 
@@ -188,14 +249,6 @@ public class MateuMDDEntityProcessor extends AbstractClassProcessor {
   @Override
   public LombokPsiElementUsage checkFieldUsage(@NotNull PsiField psiField, @NotNull PsiAnnotation psiAnnotation) {
     return LombokPsiElementUsage.READ_WRITE;
-  }
-
-
-  @NotNull
-  public PsiField createVersionField(@NotNull PsiClass psiClass) {
-    LombokLightFieldBuilder fieldBuilder = new LombokLightFieldBuilder(psiClass.getManager(), "__version", PsiType.INT);
-    fieldBuilder.getModifierList().addAnnotation("javax.persistence.Version");
-    return fieldBuilder;
   }
 
 }

@@ -39,6 +39,7 @@ import de.plushnikov.intellij.plugin.processor.modifier.ValModifierProcessor;
 import de.plushnikov.intellij.plugin.processor.modifier.ValueModifierProcessor;
 import io.mateu.intellij.plugin.processor.clazz.JPAEqualsAndHashCodeProcessor;
 import io.mateu.intellij.plugin.processor.clazz.MateuMDDEntityProcessor;
+import io.mateu.intellij.plugin.processor.clazz.MateuMDDEntityProcessor1;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -103,6 +104,7 @@ public class LombokProcessorManager {
 
 
       ServiceManager.getService(JPAEqualsAndHashCodeProcessor.class),
+      ServiceManager.getService(MateuMDDEntityProcessor1.class),
       ServiceManager.getService(MateuMDDEntityProcessor.class)
     );
   }

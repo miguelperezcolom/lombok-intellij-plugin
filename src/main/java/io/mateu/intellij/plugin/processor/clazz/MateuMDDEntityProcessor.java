@@ -184,7 +184,7 @@ public class MateuMDDEntityProcessor extends AbstractClassProcessor {
     String blockText = "return this.getClass().getSimpleName();";
     PsiField nameField = getFieldByName(psiClass, "name");
     if (nameField != null) {
-      blockText = "return this.getName();";
+      blockText = "return \"\" + this.getName();";
     } else {
 
       List<PsiField> idFields = getIdFields(psiClass);

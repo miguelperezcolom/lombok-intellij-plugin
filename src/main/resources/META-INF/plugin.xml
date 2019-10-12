@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <idea-plugin url="https://github.com/miguelperezcolom/lombok-intellij-plugin">
   <id>io.mateu.lombok-plugin</id>
-  <name>Mateu  MDD plugin</name>
+  <name>Mateu  MDD</name>
   <vendor url="https://github.com/miguelperezcolom/lombok-intellij-plugin" email="miguelperezcolom@gmail.com">Miguel Pérez</vendor>
   <version>XXX</version>
 

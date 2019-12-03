@@ -120,18 +120,13 @@ public class MateuMDDEntityProcessor extends AbstractClassProcessor {
     //}
 
 
-    final boolean hasConstructorWithoutParamaters;
     final String staticName = PsiAnnotationUtil.getStringAnnotationValue(psiAnnotation, "staticConstructor");
     if (shouldGenerateRequiredArgsConstructor(psiClass, staticName)) {
       target.addAll(requiredArgsConstructorProcessor.createRequiredArgsConstructor(psiClass, PsiModifier.PUBLIC, psiAnnotation, staticName));
-      // if there are no required field, it will already have a default constructor without parameters
-      hasConstructorWithoutParamaters = requiredArgsConstructorProcessor.getRequiredFields(psiClass).isEmpty();
-    } else {
-      hasConstructorWithoutParamaters = false;
     }
 
-    if (!hasConstructorWithoutParamaters && shouldGenerateNoArgsConstructor(psiClass, requiredArgsConstructorProcessor)) {
-      target.addAll(noArgsConstructorProcessor.createNoArgsConstructor(psiClass, PsiModifier.PRIVATE, psiAnnotation, true));
+    if (shouldGenerateNoArgsConstructor(psiClass)) {
+      target.addAll(noArgsConstructorProcessor.createNoArgsConstructor(psiClass, PsiModifier.PUBLIC, psiAnnotation, true));
     }
 
   }
@@ -181,7 +176,7 @@ public class MateuMDDEntityProcessor extends AbstractClassProcessor {
   private PsiMethod createToStringMethod(PsiClass psiClass, PsiAnnotation psiAnnotation) {
     final PsiManager psiManager = psiClass.getManager();
 
-    String blockText = "return this.getClass().getSimpleName();";
+    String blockText = "return \"zz \" + this.getClass().getSimpleName();";
     PsiField nameField = getFieldByName(psiClass, "name");
     if (nameField != null) {
       blockText = "return \"\" + this.getName();";
@@ -228,21 +223,27 @@ public class MateuMDDEntityProcessor extends AbstractClassProcessor {
 
   private boolean shouldGenerateRequiredArgsConstructor(@NotNull PsiClass psiClass, @Nullable String staticName) {
     boolean result = false;
-    // create required constructor only if there are no other constructor annotations
-    @SuppressWarnings("unchecked") final boolean notAnnotatedWith = PsiAnnotationSearchUtil.isNotAnnotatedWith(psiClass, NoArgsConstructor.class,
-      RequiredArgsConstructor.class, AllArgsConstructor.class, Builder.class, SuperBuilder.class);
-    if (notAnnotatedWith) {
-      final Collection<PsiMethod> definedConstructors = PsiClassUtil.collectClassConstructorIntern(psiClass);
-      filterToleratedElements(definedConstructors);
+    final Collection<PsiMethod> definedConstructors = PsiClassUtil.collectClassConstructorIntern(psiClass);
+    filterToleratedElements(definedConstructors);
 
-      // and only if there are no any other constructors!
-      if (definedConstructors.isEmpty()) {
-        final Collection<PsiField> requiredFields = requiredArgsConstructorProcessor.getRequiredFields(psiClass);
+    final Collection<PsiField> requiredFields = requiredArgsConstructorProcessor.getRequiredFields(psiClass);
 
-        result = requiredArgsConstructorProcessor.validateIsConstructorNotDefined(
-          psiClass, staticName, requiredFields, ProblemEmptyBuilder.getInstance());
-      }
-    }
+    result = requiredArgsConstructorProcessor.validateIsConstructorNotDefined(
+      psiClass, staticName, requiredFields, ProblemEmptyBuilder.getInstance());
+
+    return result;
+  }
+
+  private boolean shouldGenerateNoArgsConstructor(@NotNull PsiClass psiClass) {
+    boolean result = false;
+    final Collection<PsiMethod> definedConstructors = PsiClassUtil.collectClassConstructorIntern(psiClass);
+    filterToleratedElements(definedConstructors);
+
+    final Collection<PsiField> requiredFields = new ArrayList<>();
+
+    result = requiredArgsConstructorProcessor.validateIsConstructorNotDefined(
+      psiClass, "", requiredFields, ProblemEmptyBuilder.getInstance());
+
     return result;
   }
 

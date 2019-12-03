@@ -3,7 +3,7 @@ import lombok.MateuMDDEntity;
 @MateuMDDEntity
 public class MateuMDDEntityTest {
 
-    private String name;
+    private final String name;
 
     public void test() {
       System.out.println("Hola!");

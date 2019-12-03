@@ -29,11 +29,7 @@ public class MateuMDDEntityTest {
     return this.__version;
   }
 
-  private String name;
-
-  public void setName(String name) {
-    this.name = name;
-  }
+  private final String name;
 
   public String getName() {
     return this.name;
@@ -66,6 +62,10 @@ public class MateuMDDEntityTest {
 
   public MateuMDDEntityTest() {
 
+  }
+
+  public MateuMDDEntityTest(String name) {
+    this.name = name;
   }
 
     public void test() {

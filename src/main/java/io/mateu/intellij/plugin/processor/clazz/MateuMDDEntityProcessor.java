@@ -126,7 +126,7 @@ public class MateuMDDEntityProcessor extends AbstractClassProcessor {
     }
 
     if (shouldGenerateNoArgsConstructor(psiClass)) {
-      target.addAll(noArgsConstructorProcessor.createNoArgsConstructor(psiClass, PsiModifier.PUBLIC, psiAnnotation, true));
+      target.addAll(noArgsConstructorProcessor.createNoArgsConstructor(psiClass, PsiModifier.PROTECTED, psiAnnotation, true));
     }
 
   }

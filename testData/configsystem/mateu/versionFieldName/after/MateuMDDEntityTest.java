@@ -37,7 +37,7 @@ public class MateuMDDEntityTest {
 
 
   public String toString() {
-    return this.getName();
+    return "" + this.getName();
   }
 
   public boolean equals(final Object o) {
@@ -60,8 +60,8 @@ public class MateuMDDEntityTest {
   }
 
 
-  public MateuMDDEntityTest() {
-
+  protected MateuMDDEntityTest() {
+    this.name = null;
   }
 
   public MateuMDDEntityTest(String name) {

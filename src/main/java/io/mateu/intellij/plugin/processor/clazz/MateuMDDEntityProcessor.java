@@ -7,6 +7,7 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.PsiTypesUtil;
 import de.plushnikov.intellij.plugin.problem.ProblemBuilder;
 import de.plushnikov.intellij.plugin.problem.ProblemEmptyBuilder;
 import de.plushnikov.intellij.plugin.processor.LombokPsiElementUsage;
@@ -22,6 +23,7 @@ import de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder;
 import de.plushnikov.intellij.plugin.thirdparty.LombokUtils;
 import de.plushnikov.intellij.plugin.util.*;
 import lombok.*;
+import lombok.experimental.NonFinal;
 import lombok.experimental.SuperBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
 public class MateuMDDEntityProcessor extends AbstractClassProcessor {
 
   private static final Logger log = Logger.getInstance(MateuMDDEntityProcessor.class.getName());
+  private static final String BUILDER_DEFAULT_ANNOTATION = Builder.Default.class.getName().replace("$", ".");
 
 
   private final GetterProcessor getterProcessor;
@@ -120,13 +123,14 @@ public class MateuMDDEntityProcessor extends AbstractClassProcessor {
     //}
 
 
+    if (shouldGenerateNoArgsConstructor(psiClass)) {
+      //target.addAll(noArgsConstructorProcessor.createNoArgsConstructor(psiClass, PsiModifier.PROTECTED, psiAnnotation, true));
+      target.add(createNoArgsConstructor(psiClass, psiAnnotation));
+    }
+
     final String staticName = PsiAnnotationUtil.getStringAnnotationValue(psiAnnotation, "staticConstructor");
     if (shouldGenerateRequiredArgsConstructor(psiClass, staticName)) {
       target.addAll(requiredArgsConstructorProcessor.createRequiredArgsConstructor(psiClass, PsiModifier.PUBLIC, psiAnnotation, staticName));
-    }
-
-    if (shouldGenerateNoArgsConstructor(psiClass)) {
-      target.addAll(noArgsConstructorProcessor.createNoArgsConstructor(psiClass, PsiModifier.PROTECTED, psiAnnotation, true));
     }
 
   }
@@ -171,6 +175,84 @@ public class MateuMDDEntityProcessor extends AbstractClassProcessor {
 
       return hasGetter ? getterName + "()" : fieldName;
     }
+  }
+
+  private PsiMethod createNoArgsConstructor(PsiClass psiClass, PsiAnnotation psiAnnotation) {
+    final PsiManager psiManager = psiClass.getManager();
+
+
+    String blockText = ""; //""System.out.println(\"hola!\");";
+
+    for (PsiField requiredField : getRequiredFields(psiClass)) {
+      final String fieldInitializer = PsiTypesUtil.getDefaultValueOfType(requiredField.getType());
+        blockText += "this." + requiredField.getName() + " = " + fieldInitializer + ";";
+    }
+
+    final LombokLightMethodBuilder methodBuilder = new LombokLightMethodBuilder(psiManager, getConstructorName(psiClass))
+      .withConstructor(true)
+      .withContainingClass(psiClass)
+      .withNavigationElement(psiAnnotation)
+      .withModifier(PsiModifier.PROTECTED);
+    methodBuilder.withBody(PsiMethodUtil.createCodeBlockFromText(blockText, methodBuilder));
+    return methodBuilder;
+  }
+
+  @NotNull
+  public Collection<PsiField> getRequiredFields(@NotNull PsiClass psiClass) {
+    Collection<PsiField> result = new ArrayList<>();
+    final boolean classAnnotatedWithValue = PsiAnnotationSearchUtil.isAnnotatedWith(psiClass, Value.class);
+
+    for (PsiField psiField : getAllNotInitializedAndNotStaticFields(psiClass)) {
+      final PsiModifierList modifierList = psiField.getModifierList();
+      if (null != modifierList) {
+        final boolean isFinal = isFieldFinal(psiField, modifierList, classAnnotatedWithValue);
+        final boolean isNonNull = PsiAnnotationSearchUtil.isAnnotatedWith(psiField, LombokUtils.NON_NULL_PATTERN);
+        // accept initialized final or nonnull fields
+        if ((isFinal || isNonNull) && null == psiField.getInitializer()) {
+          result.add(psiField);
+        }
+      }
+    }
+    return result;
+  }
+
+  private boolean isFieldFinal(@NotNull PsiField psiField, @NotNull PsiModifierList modifierList, boolean classAnnotatedWithValue) {
+    boolean isFinal = modifierList.hasModifierProperty(PsiModifier.FINAL);
+    if (!isFinal && classAnnotatedWithValue) {
+      isFinal = PsiAnnotationSearchUtil.isNotAnnotatedWith(psiField, NonFinal.class);
+    }
+    return isFinal;
+  }
+
+  @NotNull
+  protected Collection<PsiField> getAllNotInitializedAndNotStaticFields(@NotNull PsiClass psiClass) {
+    Collection<PsiField> allNotInitializedNotStaticFields = new ArrayList<>();
+    final boolean classAnnotatedWithValue = PsiAnnotationSearchUtil.isAnnotatedWith(psiClass, Value.class);
+    for (PsiField psiField : psiClass.getFields()) {
+      // skip fields named $
+      boolean addField = !psiField.getName().startsWith(LombokUtils.LOMBOK_INTERN_FIELD_MARKER);
+
+      final PsiModifierList modifierList = psiField.getModifierList();
+      if (null != modifierList) {
+        // skip static fields
+        addField &= !modifierList.hasModifierProperty(PsiModifier.STATIC);
+
+        boolean isFinal = isFieldFinal(psiField, modifierList, classAnnotatedWithValue);
+        // skip initialized final fields
+        addField &= (!isFinal || null == psiField.getInitializer() ||
+          PsiAnnotationSearchUtil.findAnnotation(psiField, BUILDER_DEFAULT_ANNOTATION) != null);
+      }
+
+      if (addField) {
+        allNotInitializedNotStaticFields.add(psiField);
+      }
+    }
+    return allNotInitializedNotStaticFields;
+  }
+
+  @NotNull
+  public String getConstructorName(@NotNull PsiClass psiClass) {
+    return StringUtil.notNullize(psiClass.getName());
   }
 
   private PsiMethod createToStringMethod(PsiClass psiClass, PsiAnnotation psiAnnotation) {
